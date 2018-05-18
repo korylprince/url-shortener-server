@@ -42,6 +42,8 @@ func (s *Server) putHandler() http.Handler {
 			return
 		}
 
+		(r.Context().Value(contextKeyLogData)).(*logData).Data = url
+
 		user := (r.Context().Value(contextKeyUser)).(string)
 
 		id, err := s.db.Put(url, user)
@@ -61,6 +63,17 @@ func (s *Server) updateHandler() http.Handler {
 		id := mux.Vars(r)["id"]
 		user := (r.Context().Value(contextKeyUser)).(string)
 
+		//read url
+		url := new(db.URL)
+		d := json.NewDecoder(r.Body)
+
+		if err := d.Decode(url); err != nil {
+			jsonResponse(http.StatusBadRequest, fmt.Errorf("Unable to decode request body: %v", err)).ServeHTTP(w, r)
+			return
+		}
+
+		(r.Context().Value(contextKeyLogData)).(*logData).Data = url
+
 		//check that user owns URL
 		urls, err := s.db.URLs(user)
 		if err != nil {
@@ -77,15 +90,6 @@ func (s *Server) updateHandler() http.Handler {
 
 		if !owned {
 			jsonResponse(http.StatusForbidden, fmt.Errorf("URL %s is not owned by user %s", id, user)).ServeHTTP(w, r)
-			return
-		}
-
-		//read url
-		url := new(db.URL)
-		d := json.NewDecoder(r.Body)
-
-		if err := d.Decode(url); err != nil {
-			jsonResponse(http.StatusBadRequest, fmt.Errorf("Unable to decode request body: %v", err)).ServeHTTP(w, r)
 			return
 		}
 

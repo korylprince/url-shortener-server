@@ -16,11 +16,12 @@ import (
 var Debug = false
 
 type logData struct {
-	Action string    `json:"action"`
-	URLID  string    `json:"url_id,omitempty"`
-	User   string    `json:"user,omitempty"`
-	Error  string    `json:"error,omitempty"`
-	Time   time.Time `json:"time"`
+	Action string      `json:"action"`
+	URLID  string      `json:"url_id,omitempty"`
+	User   string      `json:"user,omitempty"`
+	Data   interface{} `json:"data,omitempty"`
+	Error  string      `json:"error,omitempty"`
+	Time   time.Time   `json:"time"`
 }
 
 func setAction(action string, next http.Handler) http.Handler {
