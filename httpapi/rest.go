@@ -2,6 +2,7 @@ package httpapi
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -94,12 +95,22 @@ func (s *Server) updateHandler() http.Handler {
 		}
 
 		//update url
-		if err := s.db.Update(id, url); err != nil {
+		if err = s.db.Update(id, url); err != nil {
 			jsonResponse(http.StatusInternalServerError, fmt.Errorf(`Unable to update URL %s: %v`, id, err)).ServeHTTP(w, r)
 			return
 		}
 
-		jsonResponse(http.StatusOK, nil).ServeHTTP(w, r)
+		//read url
+		url, err = s.db.Get(id)
+		if err != nil || url == nil {
+			if err == nil {
+				err = errors.New("URL unexpectedly nil")
+			}
+			jsonResponse(http.StatusInternalServerError, fmt.Errorf("Unable to get URL %s: %v", id, err)).ServeHTTP(w, r)
+			return
+		}
+
+		jsonResponse(http.StatusOK, url).ServeHTTP(w, r)
 	})
 }
 
