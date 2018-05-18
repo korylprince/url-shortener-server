@@ -18,6 +18,7 @@ var urlKey = []byte("url")
 var viewsKey = []byte("views")
 var expiresKey = []byte("expires")
 var deletedKey = []byte("deleted")
+var modifiedKey = []byte("modified")
 
 func getURL(b *bolt.Bucket) (*db.URL, error) {
 	bURL := b.Get(urlKey)
@@ -48,6 +49,13 @@ func getURL(b *bolt.Bucket) (*db.URL, error) {
 		url.Expires = expires
 	}
 
+	bModified := b.Get(modifiedKey)
+	modified := new(time.Time)
+	if err := modified.UnmarshalBinary(bModified); err != nil {
+		return nil, fmt.Errorf(`Unable to get "%s" value: %v`, modifiedKey, err)
+	}
+	url.LastModified = modified
+
 	return url, nil
 }
 
@@ -75,6 +83,15 @@ func putURL(b *bolt.Bucket, url *db.URL) error {
 		if err := b.Delete(expiresKey); err != nil {
 			return fmt.Errorf(`Unable to delete "%s": %v`, expiresKey, err)
 		}
+	}
+
+	modified := time.Now()
+	bModified, err := modified.MarshalBinary()
+	if err != nil {
+		return fmt.Errorf(`Unable to marshal "%s" value "%v": %v`, expiresKey, modified, err)
+	}
+	if err = b.Put(modifiedKey, bModified); err != nil {
+		return fmt.Errorf(`Unable to put "%s" value "%s": %v`, modifiedKey, bModified, err)
 	}
 
 	return nil
