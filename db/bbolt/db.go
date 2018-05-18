@@ -71,6 +71,10 @@ func putURL(b *bolt.Bucket, url *db.URL) error {
 		if err = b.Put(expiresKey, bExpires); err != nil {
 			return fmt.Errorf(`Unable to put "%s" value "%s": %v`, expiresKey, bExpires, err)
 		}
+	} else {
+		if err := b.Delete(expiresKey); err != nil {
+			return fmt.Errorf(`Unable to delete "%s": %v`, expiresKey, err)
+		}
 	}
 
 	return nil
