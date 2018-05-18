@@ -311,6 +311,15 @@ func (d *DB) Delete(id string) error {
 		return fmt.Errorf(`Unable to open url "%s" bucket: bucket is nil`, id)
 	}
 
+	modified := time.Now()
+	bModified, err := modified.MarshalBinary()
+	if err != nil {
+		return fmt.Errorf(`Unable to marshal "%s" value "%v": %v`, expiresKey, modified, err)
+	}
+	if err = b.Put(modifiedKey, bModified); err != nil {
+		return fmt.Errorf(`Unable to put "%s" value "%s": %v`, modifiedKey, bModified, err)
+	}
+
 	return b.Put(deletedKey, nil)
 }
 
