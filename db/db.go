@@ -24,5 +24,5 @@ type DB interface {
 
 	//URLs returns the URLs for the given user or all URLs if user is empty
 	//or an error if one occurred
-	URLs(user string) (map[string]*URL, error)
+	URLs(user string) ([]*URL, error)
 }

@@ -167,6 +167,8 @@ func (d *DB) Get(id string) (url *db.URL, err error) {
 		return nil, nil
 	}
 
+	url.ID = id
+
 	return url, err
 }
 
@@ -451,8 +453,8 @@ func (d *DB) getAllIDs() ([]string, error) {
 
 //URLs returns the URLs for the given user or all URLs if user is empty
 //or an error if one occurred
-func (d *DB) URLs(user string) (map[string]*db.URL, error) {
-	urls := make(map[string]*db.URL)
+func (d *DB) URLs(user string) ([]*db.URL, error) {
+	urls := make([]*db.URL, 0)
 
 	var ids []string
 	var err error
@@ -474,7 +476,8 @@ func (d *DB) URLs(user string) (map[string]*db.URL, error) {
 			return nil, fmt.Errorf(`Unable to get URL "%s": %v`, id, err)
 		}
 		if url != nil {
-			urls[id] = url
+			url.ID = id
+			urls = append(urls, url)
 		}
 	}
 

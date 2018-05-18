@@ -94,8 +94,8 @@ func (s *Server) updateHandler() http.Handler {
 		}
 
 		owned := false
-		for i := range urls {
-			if i == id {
+		for _, url := range urls {
+			if url.ID == id {
 				owned = true
 			}
 		}
@@ -138,8 +138,8 @@ func (s *Server) deleteHandler() http.Handler {
 		}
 
 		owned := false
-		for i := range urls {
-			if i == id {
+		for _, url := range urls {
+			if url.ID == id {
 				owned = true
 			}
 		}
@@ -180,7 +180,7 @@ func (s *Server) viewHandler() http.Handler {
 
 func (s *Server) urlsHandler() http.Handler {
 	type response struct {
-		URLs map[string]*db.URL `json:"urls"`
+		URLs []*db.URL `json:"urls"`
 	}
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
