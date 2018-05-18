@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	neturl "net/url"
 
 	"github.com/gorilla/mux"
 	"github.com/korylprince/url-shortener-server/db"
@@ -45,6 +46,11 @@ func (s *Server) putHandler() http.Handler {
 
 		(r.Context().Value(contextKeyLogData)).(*logData).Data = url
 
+		if _, err := neturl.ParseRequestURI(url.URL); err != nil {
+			jsonResponse(http.StatusBadRequest, fmt.Errorf(`Unable to parse url "%s": %v`, url.URL, err)).ServeHTTP(w, r)
+			return
+		}
+
 		user := (r.Context().Value(contextKeyUser)).(string)
 
 		id, err := s.db.Put(url, user)
@@ -74,6 +80,11 @@ func (s *Server) updateHandler() http.Handler {
 		}
 
 		(r.Context().Value(contextKeyLogData)).(*logData).Data = url
+
+		if _, err := neturl.ParseRequestURI(url.URL); err != nil {
+			jsonResponse(http.StatusBadRequest, fmt.Errorf(`Unable to parse url "%s": %v`, url.URL, err)).ServeHTTP(w, r)
+			return
+		}
 
 		//check that user owns URL
 		urls, err := s.db.URLs(user)
