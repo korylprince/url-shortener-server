@@ -70,18 +70,30 @@ func (s *Server) updateHandler() http.Handler {
 		id := mux.Vars(r)["id"]
 		user := (r.Context().Value(contextKeyUser)).(string)
 
-		//read url
-		url := new(db.URL)
+		//check URL exists
+		url, err := s.db.Get(id)
+		if err != nil {
+			jsonResponse(http.StatusInternalServerError, fmt.Errorf("Unable to get URL %s: %v", id, err)).ServeHTTP(w, r)
+			return
+		}
+
+		if url == nil {
+			jsonResponse(http.StatusNotFound, fmt.Errorf("URL %s does not exist", id)).ServeHTTP(w, r)
+			return
+		}
+
+		//read url from body
+		url = new(db.URL)
 		d := json.NewDecoder(r.Body)
 
-		if err := d.Decode(url); err != nil {
+		if err = d.Decode(url); err != nil {
 			jsonResponse(http.StatusBadRequest, fmt.Errorf("Unable to decode request body: %v", err)).ServeHTTP(w, r)
 			return
 		}
 
 		(r.Context().Value(contextKeyLogData)).(*logData).Data = url
 
-		if _, err := neturl.ParseRequestURI(url.URL); err != nil {
+		if _, err = neturl.ParseRequestURI(url.URL); err != nil {
 			jsonResponse(http.StatusBadRequest, fmt.Errorf(`Unable to parse url "%s": %v`, url.URL, err)).ServeHTTP(w, r)
 			return
 		}
@@ -129,6 +141,18 @@ func (s *Server) deleteHandler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		id := mux.Vars(r)["id"]
 		user := (r.Context().Value(contextKeyUser)).(string)
+
+		//check URL exists
+		url, err := s.db.Get(id)
+		if err != nil {
+			jsonResponse(http.StatusInternalServerError, fmt.Errorf("Unable to get URL %s: %v", id, err)).ServeHTTP(w, r)
+			return
+		}
+
+		if url == nil {
+			jsonResponse(http.StatusNotFound, fmt.Errorf("URL %s does not exist", id)).ServeHTTP(w, r)
+			return
+		}
 
 		//check that user owns URL
 		urls, err := s.db.URLs(user)
