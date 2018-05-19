@@ -23,6 +23,9 @@ type Config struct {
 	LDAPSecurity string `default:"none" required:"true"`
 	ldapSecurity auth.SecurityType
 
+	TLSCert string
+	TLSKey  string
+
 	ListenAddr string `default:":8080" required:"true"` //addr format used for net.Dial; required
 	Prefix     string //url prefix to mount api to without trailing slash
 	Debug      bool   `default:"false"` //return debugging information to client

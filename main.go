@@ -41,5 +41,10 @@ func main() {
 	r := httpapi.NewRouter(s, os.Stdout)
 
 	log.Println("Listening on:", config.ListenAddr)
-	log.Println(http.ListenAndServe(config.ListenAddr, r))
+
+	if config.TLSCert != "" && config.TLSKey != "" {
+		log.Println(http.ListenAndServeTLS(config.ListenAddr, config.TLSCert, config.TLSKey, r))
+	} else {
+		log.Println(http.ListenAndServe(config.ListenAddr, r))
+	}
 }
