@@ -20,50 +20,61 @@ func notFound(w http.ResponseWriter, r *http.Request) {
 func NewRouter(s *Server, output io.Writer) http.Handler {
 	r := mux.NewRouter()
 
-	r.NotFoundHandler = http.HandlerFunc(notFound)
+	api := r.PathPrefix(apiPath).Subrouter()
+
+	api.NotFoundHandler = http.HandlerFunc(notFound)
 
 	//Authenticate: POST /auth
-	r.Methods("POST").Path(apiPath + "/auth").Handler(
-		setAction("Authenticate",
-			jsonRequest(
-				s.authenticateHandler())))
+	api.Methods("POST").Path("/auth").Handler(
+		logRequest(output,
+			setAction("Authenticate",
+				jsonRequest(
+					s.authenticateHandler()))))
 
 	//Get: GET /urls/<id>
-	r.Methods("GET").Path(apiPath + "/urls/{id:[a-zA-Z0-9]+}").Handler(
-		setAction("Get",
-			s.requireAuthenticated(
-				s.getHandler())))
+	api.Methods("GET").Path("/urls/{id:[a-zA-Z0-9]+}").Handler(
+		logRequest(output,
+			setAction("Get",
+				s.requireAuthenticated(
+					s.getHandler()))))
 
 	//Put: POST /urls
-	r.Methods("POST").Path(apiPath + "/urls").Handler(
-		setAction("Put",
-			jsonRequest(
-				s.requireAuthenticated(
-					s.putHandler()))))
+	api.Methods("POST").Path("/urls").Handler(
+		logRequest(output,
+			setAction("Put",
+				jsonRequest(
+					s.requireAuthenticated(
+						s.putHandler())))))
 
 	//Update: PUT /urls/<id>
-	r.Methods("PUT").Path(apiPath + "/urls/{id:[a-zA-Z0-9]+}").Handler(
-		setAction("Update",
-			jsonRequest(
-				s.requireAuthenticated(
-					s.updateHandler()))))
+	api.Methods("PUT").Path("/urls/{id:[a-zA-Z0-9]+}").Handler(
+		logRequest(output,
+			setAction("Update",
+				jsonRequest(
+					s.requireAuthenticated(
+						s.updateHandler())))))
 
 	//Delete: DELETE /urls/<id>
-	r.Methods("DELETE").Path(apiPath + "/urls/{id:[a-zA-Z0-9]+}").Handler(
-		setAction("Delete",
-			s.requireAuthenticated(
-				s.deleteHandler())))
+	api.Methods("DELETE").Path("/urls/{id:[a-zA-Z0-9]+}").Handler(
+		logRequest(output,
+			setAction("Delete",
+				s.requireAuthenticated(
+					s.deleteHandler()))))
+
+	//URLs: GET /urls
+	api.Methods("GET").Path("/urls").Handler(
+		logRequest(output,
+			setAction("URLs",
+				s.requireAuthenticated(
+					s.urlsHandler()))))
 
 	//View: GET /<code>
 	r.Methods("GET").Path("/{id:[a-zA-Z0-9]+}").Handler(
-		setAction("View",
-			s.viewHandler()))
+		logRequest(output,
+			setAction("View",
+				s.viewHandler())))
 
-	//URLs: GET /urls
-	r.Methods("GET").Path(apiPath + "/urls").Handler(
-		setAction("URLs",
-			s.requireAuthenticated(
-				s.urlsHandler())))
+	r.PathPrefix("/").Handler(http.FileServer(s.box))
 
-	return handlers.CombinedLoggingHandler(output, logRequest(output, r))
+	return handlers.CombinedLoggingHandler(output, r)
 }

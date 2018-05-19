@@ -6,6 +6,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/gobuffalo/packr"
 	"github.com/korylprince/url-shortener-server/auth/ad"
 	"github.com/korylprince/url-shortener-server/db/bbolt"
 	"github.com/korylprince/url-shortener-server/httpapi"
@@ -33,7 +34,9 @@ func main() {
 
 	sessionStore := memory.New(time.Minute * time.Duration(config.SessionExpiration))
 
-	s := httpapi.NewServer(db, auth, sessionStore)
+	box := packr.NewBox("./client/dist")
+
+	s := httpapi.NewServer(db, auth, sessionStore, box)
 
 	r := httpapi.NewRouter(s, os.Stdout)
 

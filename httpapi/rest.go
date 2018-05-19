@@ -194,7 +194,7 @@ func (s *Server) viewHandler() http.Handler {
 		}
 
 		if url == "" {
-			jsonResponse(http.StatusNotFound, fmt.Errorf("URL %s does not exist", id)).ServeHTTP(w, r)
+			http.Redirect(w, r, "/404.html", http.StatusTemporaryRedirect)
 			return
 		}
 

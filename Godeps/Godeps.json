@@ -9,6 +9,11 @@
 			"Rev": "af9db2027c98c61ecd8e17caa5bd265792b9b9a2"
 		},
 		{
+			"ImportPath": "github.com/gobuffalo/packr",
+			"Comment": "v1.11.0",
+			"Rev": "7f4074995d431987caaa35088199f13c44b24440"
+		},
+		{
 			"ImportPath": "github.com/gorilla/handlers",
 			"Comment": "v1.3.0-4-g13a38d2",
 			"Rev": "13a38d26174b16d5b4bf6f1094c1389ec9879572"
@@ -22,6 +27,11 @@
 			"ImportPath": "github.com/kelseyhightower/envconfig",
 			"Comment": "v1.3.0-12-gb2c5c87",
 			"Rev": "b2c5c876e2659d9060d82e9b8494150d53854cc4"
+		},
+		{
+			"ImportPath": "github.com/pkg/errors",
+			"Comment": "v0.8.0-12-g816c908",
+			"Rev": "816c9085562cd7ee03e7f8188a1cfd942858cded"
 		},
 		{
 			"ImportPath": "golang.org/x/sys/unix",
