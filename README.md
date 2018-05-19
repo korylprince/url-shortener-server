@@ -30,3 +30,7 @@ SHORTENER_DEBUG="true"
 ```
 
 For more information see [config.go](https://github.com/korylprince/url-shortener-server/blob/master/config.go).
+
+# Docker
+
+You can use the pre-built Docker container, [korylprince/url-shortener-server:v1.0.0](https://hub.docker.com/r/korylprince/url-shortener-server/). See the included [docker-example.sh](https://github.com/korylprince/url-shortener-server/blob/master/docker-example.sh) script for an example of how to run the container.
