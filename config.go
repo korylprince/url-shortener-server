@@ -14,16 +14,16 @@ type Config struct {
 
 	DatabasePath string `required:"true"`
 
-	URLIDLength int `default:"6",required:"true"`
+	URLIDLength int `default:"6" required:"true"`
 
 	LDAPServer   string `required:"true"`
-	LDAPPort     int    `default:"389",required:"true"`
+	LDAPPort     int    `default:"389" required:"true"`
 	LDAPBaseDN   string `required:"true"`
 	LDAPGroup    string
-	LDAPSecurity string `default:"none",required:"true"`
+	LDAPSecurity string `default:"none" required:"true"`
 	ldapSecurity auth.SecurityType
 
-	ListenAddr string `default:":8080",required:"true"` //addr format used for net.Dial; required
+	ListenAddr string `default:":8080" required:"true"` //addr format used for net.Dial; required
 	Prefix     string //url prefix to mount api to without trailing slash
 	Debug      bool   `default:"false"` //return debugging information to client
 }
