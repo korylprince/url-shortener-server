@@ -6,6 +6,7 @@ This is the backend for a URL shortening service. The frontend can be found [her
 
 ```
 go get github.com/korylprince/url-shortener-server
+./build.sh
 ```
 
 # Configuration
