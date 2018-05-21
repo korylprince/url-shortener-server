@@ -1,12 +1,15 @@
 package httpapi
 
 import (
+	"fmt"
 	"io"
 	"net/http"
 
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 )
+
+const allowedIDRegexp = "[a-zA-Z0-9_\\-.]+"
 
 //API is the current API version
 const API = "1.0"
@@ -32,7 +35,7 @@ func NewRouter(s *Server, output io.Writer) http.Handler {
 					s.authenticateHandler()))))
 
 	//Get: GET /urls/<id>
-	api.Methods("GET").Path("/urls/{id:[a-zA-Z0-9]+}").Handler(
+	api.Methods("GET").Path(fmt.Sprintf("/urls/{id:%s}", allowedIDRegexp)).Handler(
 		logRequest(output,
 			setAction("Get",
 				s.requireAuthenticated(
@@ -47,7 +50,7 @@ func NewRouter(s *Server, output io.Writer) http.Handler {
 						s.putHandler())))))
 
 	//Update: PUT /urls/<id>
-	api.Methods("PUT").Path("/urls/{id:[a-zA-Z0-9]+}").Handler(
+	api.Methods("PUT").Path(fmt.Sprintf("/urls/{id:%s}", allowedIDRegexp)).Handler(
 		logRequest(output,
 			setAction("Update",
 				jsonRequest(
@@ -55,7 +58,7 @@ func NewRouter(s *Server, output io.Writer) http.Handler {
 						s.updateHandler())))))
 
 	//Delete: DELETE /urls/<id>
-	api.Methods("DELETE").Path("/urls/{id:[a-zA-Z0-9]+}").Handler(
+	api.Methods("DELETE").Path(fmt.Sprintf("/urls/{id:%s}", allowedIDRegexp)).Handler(
 		logRequest(output,
 			setAction("Delete",
 				s.requireAuthenticated(
@@ -69,7 +72,7 @@ func NewRouter(s *Server, output io.Writer) http.Handler {
 					s.urlsHandler()))))
 
 	//View: GET /<code>
-	r.Methods("GET").Path("/{id:[a-zA-Z0-9]+}").Handler(
+	r.Methods("GET").Path(fmt.Sprintf("/{id:%s}", allowedIDRegexp)).Handler(
 		logRequest(output,
 			setAction("View",
 				s.viewHandler())))

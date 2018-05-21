@@ -209,12 +209,18 @@ func (d *DB) Put(url *db.URL, user string) (id string, err error) {
 		return "", fmt.Errorf(`Unable to open database "%s" bucket: bucket is nil`, urlsBucket)
 	}
 
-	//generate unused id
-	for {
-		id = rand.String(d.idLength)
-		if ub.Bucket([]byte(id)) == nil {
-			break
+	id = url.ID
+
+	if id == "" {
+		//generate random, unused id if not set
+		for {
+			id = rand.String(d.idLength)
+			if ub.Bucket([]byte(id)) == nil {
+				break
+			}
 		}
+	} else if ub.Bucket([]byte(id)) != nil {
+		return "", fmt.Errorf("URL %s already exists", id)
 	}
 
 	b, err := ub.CreateBucketIfNotExists([]byte(id))
@@ -257,6 +263,7 @@ func (d *DB) Update(id string, url *db.URL) error {
 		return fmt.Errorf(`Unable to get URL "%s": URL doesn't exist`, id)
 	}
 
+	url.ID = id
 	url.User = u.User
 	url.Views = u.Views
 

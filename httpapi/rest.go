@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"net/http"
 	neturl "net/url"
+	"regexp"
+	"strings"
 
 	"github.com/gorilla/mux"
 	"github.com/korylprince/url-shortener-server/db"
@@ -51,10 +53,20 @@ func (s *Server) putHandler() http.Handler {
 			return
 		}
 
+		if url.ID != "" && !regexp.MustCompile(allowedIDRegexp).MatchString(url.ID) {
+			jsonResponse(http.StatusBadRequest, fmt.Errorf(`URL ID %s not valid`, url.ID)).ServeHTTP(w, r)
+			return
+		}
+
 		user := (r.Context().Value(contextKeyUser)).(string)
 
 		id, err := s.db.Put(url, user)
 		if err != nil {
+			if strings.Contains(err.Error(), "already exists") {
+				jsonResponse(http.StatusConflict, err).ServeHTTP(w, r)
+				return
+			}
+
 			jsonResponse(http.StatusInternalServerError, fmt.Errorf(`Unable to put URL "%s": %v`, url.URL, err)).ServeHTTP(w, r)
 			return
 		}
