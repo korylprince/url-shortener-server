@@ -12,7 +12,7 @@ import (
 const allowedIDRegexp = "[a-zA-Z0-9_\\-.]+"
 
 //API is the current API version
-const API = "1.0"
+const API = "1.1"
 const apiPath = "/api/" + API
 
 func notFound(w http.ResponseWriter, r *http.Request) {
