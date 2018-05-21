@@ -14,6 +14,7 @@ import (
 var urlsBucket = []byte("urls")
 var usersBucket = []byte("users")
 
+var userKey = []byte("user")
 var urlKey = []byte("url")
 var viewsKey = []byte("views")
 var expiresKey = []byte("expires")
@@ -21,6 +22,11 @@ var deletedKey = []byte("deleted")
 var modifiedKey = []byte("modified")
 
 func getURL(b *bolt.Bucket) (*db.URL, error) {
+	bUser := b.Get(userKey)
+	if bUser == nil {
+		return nil, fmt.Errorf(`Unable to get "%s" value: value is nil`, userKey)
+	}
+
 	bURL := b.Get(urlKey)
 	if bURL == nil {
 		return nil, fmt.Errorf(`Unable to get "%s" value: value is nil`, urlKey)
@@ -37,6 +43,7 @@ func getURL(b *bolt.Bucket) (*db.URL, error) {
 	}
 
 	url := &db.URL{
+		User:  string(bUser),
 		URL:   string(bURL),
 		Views: views,
 	}
@@ -60,6 +67,10 @@ func getURL(b *bolt.Bucket) (*db.URL, error) {
 }
 
 func putURL(b *bolt.Bucket, url *db.URL) error {
+	if err := b.Put(userKey, []byte(url.User)); err != nil {
+		return fmt.Errorf(`Unable to put "%s" value "%s": %v`, userKey, url.User, err)
+	}
+
 	if err := b.Put(urlKey, []byte(url.URL)); err != nil {
 		return fmt.Errorf(`Unable to put "%s" value "%s": %v`, urlKey, url.URL, err)
 	}
@@ -211,6 +222,7 @@ func (d *DB) Put(url *db.URL, user string) (id string, err error) {
 		return "", fmt.Errorf(`Unable to create url "%s" bucket: %v`, id, err)
 	}
 
+	url.User = user
 	url.Views = 0
 
 	if err = putURL(b, url); err != nil {
@@ -245,6 +257,7 @@ func (d *DB) Update(id string, url *db.URL) error {
 		return fmt.Errorf(`Unable to get URL "%s": URL doesn't exist`, id)
 	}
 
+	url.User = u.User
 	url.Views = u.Views
 
 	tx, err := d.db.Begin(true)
