@@ -19,6 +19,7 @@ type logData struct {
 	Action string      `json:"action"`
 	URLID  string      `json:"url_id,omitempty"`
 	User   string      `json:"user,omitempty"`
+	Admin  bool        `json:"admin,omitempty"`
 	Data   interface{} `json:"data,omitempty"`
 	Error  string      `json:"error,omitempty"`
 	Time   time.Time   `json:"time"`

@@ -19,6 +19,7 @@ func (s *Server) authenticateHandler() http.Handler {
 
 	type response struct {
 		SessionID string `json:"session_id"`
+		Admin     bool   `json:"admin"`
 	}
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -30,7 +31,7 @@ func (s *Server) authenticateHandler() http.Handler {
 			return
 		}
 
-		ok, err := s.auth.Authenticate(req.Username, req.Password)
+		ok, admin, err := s.auth.Authenticate(req.Username, req.Password)
 		if err != nil {
 			jsonResponse(http.StatusInternalServerError, fmt.Errorf("Unable to authenticate: %v", err)).ServeHTTP(w, r)
 			return
@@ -41,13 +42,13 @@ func (s *Server) authenticateHandler() http.Handler {
 			return
 		}
 
-		id, err := s.sessionStore.Create(&session.Session{Username: req.Username})
+		id, err := s.sessionStore.Create(&session.Session{Username: req.Username, Admin: admin})
 		if err != nil {
 			jsonResponse(http.StatusInternalServerError, fmt.Errorf("Unable to create session: %v", err)).ServeHTTP(w, r)
 			return
 		}
 
-		jsonResponse(http.StatusOK, &response{SessionID: id}).ServeHTTP(w, r)
+		jsonResponse(http.StatusOK, &response{SessionID: id, Admin: admin}).ServeHTTP(w, r)
 	})
 }
 
@@ -78,8 +79,10 @@ func (s *Server) requireAuthenticated(next http.Handler) http.Handler {
 		}
 
 		(r.Context().Value(contextKeyLogData)).(*logData).User = session.Username
+		(r.Context().Value(contextKeyLogData)).(*logData).Admin = session.Admin
 
 		ctx := context.WithValue(r.Context(), contextKeyUser, session.Username)
+		ctx = context.WithValue(ctx, contextKeyAdmin, session.Admin)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

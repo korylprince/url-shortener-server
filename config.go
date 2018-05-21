@@ -16,12 +16,13 @@ type Config struct {
 
 	URLIDLength int `default:"6" required:"true"`
 
-	LDAPServer   string `required:"true"`
-	LDAPPort     int    `default:"389" required:"true"`
-	LDAPBaseDN   string `required:"true"`
-	LDAPGroup    string
-	LDAPSecurity string `default:"none" required:"true"`
-	ldapSecurity auth.SecurityType
+	LDAPServer     string `required:"true"`
+	LDAPPort       int    `default:"389" required:"true"`
+	LDAPBaseDN     string `required:"true"`
+	LDAPGroup      string
+	LDAPAdminGroup string
+	LDAPSecurity   string `default:"none" required:"true"`
+	ldapSecurity   auth.SecurityType
 
 	TLSCert string
 	TLSKey  string

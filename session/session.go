@@ -3,6 +3,7 @@ package session
 //Session represents an authenticated session
 type Session struct {
 	Username string
+	Admin    bool
 }
 
 //Store is a session storage mechanism

@@ -30,7 +30,7 @@ func main() {
 		Debug:    config.Debug,
 	}
 
-	auth := ad.New(authConfig, config.LDAPGroup)
+	auth := ad.New(authConfig, config.LDAPGroup, config.LDAPAdminGroup)
 
 	sessionStore := memory.New(time.Minute * time.Duration(config.SessionExpiration))
 

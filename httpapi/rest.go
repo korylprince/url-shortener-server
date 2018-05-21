@@ -13,10 +13,44 @@ import (
 	"github.com/korylprince/url-shortener-server/db"
 )
 
+func (s *Server) hasRights(r *http.Request, user, id string) (bool, error) {
+	if admin := (r.Context().Value(contextKeyAdmin)).(bool); admin {
+		return true, nil
+	}
+
+	urls, err := s.db.URLs(user)
+	if err != nil {
+		return false, fmt.Errorf("Unable to get URLs for user %s: %v", user, err)
+	}
+
+	owned := false
+	for _, url := range urls {
+		if url.ID == id {
+			owned = true
+		}
+	}
+
+	return owned, nil
+}
+
 func (s *Server) getHandler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		id := mux.Vars(r)["id"]
+		user := (r.Context().Value(contextKeyUser)).(string)
 
+		//check user has rights to url
+		ok, err := s.hasRights(r, user, id)
+		if err != nil {
+			jsonResponse(http.StatusInternalServerError, fmt.Errorf("Unable to check if user %s is has rights for URL %s: %v", user, id, err)).ServeHTTP(w, r)
+			return
+		}
+
+		if !ok {
+			jsonResponse(http.StatusForbidden, fmt.Errorf("User %s does not have permission to read URL %s", user, id)).ServeHTTP(w, r)
+			return
+		}
+
+		//read url
 		url, err := s.db.Get(id)
 		if err != nil {
 			jsonResponse(http.StatusInternalServerError, fmt.Errorf("Unable to get URL %s: %v", id, err)).ServeHTTP(w, r)
@@ -110,32 +144,25 @@ func (s *Server) updateHandler() http.Handler {
 			return
 		}
 
-		//check that user owns URL
-		urls, err := s.db.URLs(user)
+		//check user has rights to url
+		ok, err := s.hasRights(r, user, id)
 		if err != nil {
-			jsonResponse(http.StatusInternalServerError, fmt.Errorf(`Unable to get URLs for user %s: %v`, user, err)).ServeHTTP(w, r)
+			jsonResponse(http.StatusInternalServerError, fmt.Errorf("Unable to check if user %s is has rights for URL %s: %v", user, id, err)).ServeHTTP(w, r)
 			return
 		}
 
-		owned := false
-		for _, url := range urls {
-			if url.ID == id {
-				owned = true
-			}
-		}
-
-		if !owned {
-			jsonResponse(http.StatusForbidden, fmt.Errorf("URL %s is not owned by user %s", id, user)).ServeHTTP(w, r)
+		if !ok {
+			jsonResponse(http.StatusForbidden, fmt.Errorf("User %s does not have permission to update URL %s", user, id)).ServeHTTP(w, r)
 			return
 		}
 
 		//update url
 		if err = s.db.Update(id, url); err != nil {
-			jsonResponse(http.StatusInternalServerError, fmt.Errorf(`Unable to update URL %s: %v`, id, err)).ServeHTTP(w, r)
+			jsonResponse(http.StatusInternalServerError, fmt.Errorf("Unable to update URL %s: %v", id, err)).ServeHTTP(w, r)
 			return
 		}
 
-		//read url
+		//re-read url
 		url, err = s.db.Get(id)
 		if err != nil || url == nil {
 			if err == nil {
@@ -166,28 +193,21 @@ func (s *Server) deleteHandler() http.Handler {
 			return
 		}
 
-		//check that user owns URL
-		urls, err := s.db.URLs(user)
+		//check user has rights to url
+		ok, err := s.hasRights(r, user, id)
 		if err != nil {
-			jsonResponse(http.StatusInternalServerError, fmt.Errorf(`Unable to get URLs for user %s: %v`, user, err)).ServeHTTP(w, r)
+			jsonResponse(http.StatusInternalServerError, fmt.Errorf("Unable to check if user %s is has rights for URL %s: %v", user, id, err)).ServeHTTP(w, r)
 			return
 		}
 
-		owned := false
-		for _, url := range urls {
-			if url.ID == id {
-				owned = true
-			}
-		}
-
-		if !owned {
-			jsonResponse(http.StatusForbidden, fmt.Errorf("URL %s is not owned by user %s", id, user)).ServeHTTP(w, r)
+		if !ok {
+			jsonResponse(http.StatusForbidden, fmt.Errorf("User %s does not have permission to delete URL %s", user, id)).ServeHTTP(w, r)
 			return
 		}
 
 		//delete url
 		if err := s.db.Delete(id); err != nil {
-			jsonResponse(http.StatusInternalServerError, fmt.Errorf(`Unable to delete URL %s: %v`, id, err)).ServeHTTP(w, r)
+			jsonResponse(http.StatusInternalServerError, fmt.Errorf("Unable to delete URL %s: %v", id, err)).ServeHTTP(w, r)
 			return
 		}
 
@@ -222,9 +242,13 @@ func (s *Server) urlsHandler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		user := (r.Context().Value(contextKeyUser)).(string)
 
+		if admin := (r.Context().Value(contextKeyAdmin)).(bool); admin && r.FormValue("all") == "true" {
+			user = ""
+		}
+
 		urls, err := s.db.URLs(user)
 		if err != nil {
-			jsonResponse(http.StatusInternalServerError, fmt.Errorf(`Unable to get URLs for user %s: %v`, user, err)).ServeHTTP(w, r)
+			jsonResponse(http.StatusInternalServerError, fmt.Errorf("Unable to get URLs for user %s: %v", user, err)).ServeHTTP(w, r)
 			return
 		}
 
