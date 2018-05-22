@@ -51,7 +51,7 @@ docker run -d --name="url-shortener" \
     -e SHORTENER_LDAPSECURITY="none" \
     -e SHORTENER_LISTENADDR=":80" \
     --restart="always" \
-    korylprince/url-shortener-server:v1.1.0
+    korylprince/url-shortener-server:latest
 ```
 
 #### Use LDAP StartTLS + HTTP TLS + LDAP Groups
@@ -71,5 +71,5 @@ docker run -d --name="url-shortener" \
     -e SHORTENER_TLSCERT="/data/chained_cert.pem" \
     -e SHORTENER_TLSKEY="/data/key.pem" \
     --restart="always" \
-    korylprince/url-shortener-server:v1.1.0
+    korylprince/url-shortener-server:latest
 ```
