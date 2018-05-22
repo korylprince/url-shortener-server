@@ -21,6 +21,7 @@ SHORTENER_LDAPSERVER="ldap.example.com"
 SHORTENER_LDAPPORT="389"
 SHORTENER_LDAPBASEDN="OU=Container,DC=example,DC=net"
 SHORTENER_LDAPGROUP="Group" # This will be the group's CN
+SHORTENER_LDAPADMINGROUP="Admin Group" # Group allowed to access Admin Interface
 SHORTENER_LDAPSECURITY="starttls" # none, tls, or starttls
 SHORTENER_TLSCERT="/path/to/cert.pem"
 SHORTENER_TLSKEY="/path/to/key.pem"
@@ -33,7 +34,7 @@ For more information see [config.go](https://github.com/korylprince/url-shortene
 
 # Docker
 
-You can use the pre-built Docker container, [korylprince/url-shortener-server:v1.0.0](https://hub.docker.com/r/korylprince/url-shortener-server/).
+You can use the pre-built Docker container, [korylprince/url-shortener-server](https://hub.docker.com/r/korylprince/url-shortener-server/).
 
 ### Examples
 
@@ -53,7 +54,7 @@ docker run -d --name="url-shortener" \
     korylprince/url-shortener-server:v1.0.0
 ```
 
-#### Use LDAP StartTLS + HTTP TLS + LDAP Group
+#### Use LDAP StartTLS + HTTP TLS + LDAP Groups
 
 ```bash
 docker run -d --name="url-shortener" \
@@ -64,6 +65,7 @@ docker run -d --name="url-shortener" \
     -e SHORTENER_LDAPPORT="389" \
     -e SHORTENER_LDAPBASEDN="OU=Container,DC=example,DC=net" \
     -e SHORTENER_LDAPGROUP="Example Group" \
+    -e SHORTENER_LDAPADMINGROUP="Example Admin Group" \
     -e SHORTENER_LDAPSECURITY="starttls" \
     -e SHORTENER_LISTENADDR=":443" \
     -e SHORTENER_TLSCERT="/data/chained_cert.pem" \
