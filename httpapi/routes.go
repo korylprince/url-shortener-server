@@ -71,6 +71,9 @@ func NewRouter(s *Server, output io.Writer) http.Handler {
 				s.requireAuthenticated(
 					s.urlsHandler()))))
 
+	//HTTP 404 Page
+	r.Path("/404.html").Handler(http.FileServer(s.box))
+
 	//View: GET /<code>
 	r.Methods("GET").Path(fmt.Sprintf("/{id:%s}", allowedIDRegexp)).Handler(
 		logRequest(output,
