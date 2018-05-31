@@ -17,6 +17,7 @@ The server is configured with environment variables:
 SHORTENER_SESSIONEXPIRATION="60" # In minutes
 SHORTENER_DATABASEPATH="/path/to/urls.db"
 SHORTENER_URLIDLENGTH="6" # Length of random URL id. Recommended to leave at 6
+SHORTENER_APPTITLE="My Shortener" # Set to change name of app in client
 SHORTENER_LDAPSERVER="ldap.example.com"
 SHORTENER_LDAPPORT="389"
 SHORTENER_LDAPBASEDN="OU=Container,DC=example,DC=net"
@@ -54,13 +55,14 @@ docker run -d --name="url-shortener" \
     korylprince/url-shortener-server:latest
 ```
 
-#### Use LDAP StartTLS + HTTP TLS + LDAP Groups
+#### Use Custom App Title + LDAP StartTLS + HTTP TLS + LDAP Groups
 
 ```bash
 docker run -d --name="url-shortener" \
     -p 443:443 \
     -v /data:/data \
     -e SHORTENER_DATABASEPATH="/data/urls.db" \
+    -e SHORTENER_APPTITLE="My Shortener" \
     -e SHORTENER_LDAPSERVER="ldap.example.com" \
     -e SHORTENER_LDAPPORT="389" \
     -e SHORTENER_LDAPBASEDN="OU=Container,DC=example,DC=net" \
