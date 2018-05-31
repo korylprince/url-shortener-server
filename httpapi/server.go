@@ -9,6 +9,7 @@ import (
 
 //Server represents shared resources
 type Server struct {
+	AppTitle     string
 	db           db.DB
 	auth         auth.Auth
 	sessionStore session.Store
@@ -16,6 +17,6 @@ type Server struct {
 }
 
 //NewServer returns a new server with the given resources
-func NewServer(db db.DB, auth auth.Auth, sessionStore session.Store, box packr.Box) *Server {
-	return &Server{db: db, auth: auth, sessionStore: sessionStore, box: box}
+func NewServer(title string, db db.DB, auth auth.Auth, sessionStore session.Store, box packr.Box) *Server {
+	return &Server{AppTitle: title, db: db, auth: auth, sessionStore: sessionStore, box: box}
 }

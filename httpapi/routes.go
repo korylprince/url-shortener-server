@@ -64,6 +64,12 @@ func NewRouter(s *Server, output io.Writer) http.Handler {
 				s.requireAuthenticated(
 					s.deleteHandler()))))
 
+	//Title: GET /title
+	api.Methods("GET").Path("/title").Handler(
+		logRequest(output,
+			setAction("Title",
+				s.titleHandler())))
+
 	//URLs: GET /urls
 	api.Methods("GET").Path("/urls").Handler(
 		logRequest(output,

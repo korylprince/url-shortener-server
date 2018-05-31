@@ -16,6 +16,8 @@ type Config struct {
 
 	URLIDLength int `default:"6" required:"true"`
 
+	AppTitle string
+
 	LDAPServer     string `required:"true"`
 	LDAPPort       int    `default:"389" required:"true"`
 	LDAPBaseDN     string `required:"true"`

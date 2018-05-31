@@ -36,7 +36,7 @@ func main() {
 
 	box := packr.NewBox("./client/dist")
 
-	s := httpapi.NewServer(db, auth, sessionStore, box)
+	s := httpapi.NewServer(config.AppTitle, db, auth, sessionStore, box)
 
 	r := httpapi.NewRouter(s, os.Stdout)
 

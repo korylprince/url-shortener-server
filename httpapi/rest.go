@@ -215,6 +215,17 @@ func (s *Server) deleteHandler() http.Handler {
 	})
 }
 
+func (s *Server) titleHandler() http.Handler {
+	type response struct {
+		AppTitle string `json:"app_title"`
+	}
+
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		(r.Context().Value(contextKeyLogData)).(*logData).Data = s.AppTitle
+		jsonResponse(http.StatusOK, &response{AppTitle: s.AppTitle}).ServeHTTP(w, r)
+	})
+}
+
 func (s *Server) viewHandler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		id := mux.Vars(r)["id"]
