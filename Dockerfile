@@ -1,8 +1,8 @@
-FROM golang:1.10-alpine as builder
+FROM golang:1.11-alpine as builder
 
 ARG VERSION
 
-RUN apk add --no-cache git nodejs ca-certificates
+RUN apk add --no-cache git nodejs npm ca-certificates
 
 RUN git clone --branch "$VERSION" --single-branch --depth 1 --recurse-submodules \
     https://github.com/korylprince/url-shortener-server.git /go/src/github.com/korylprince/url-shortener-server
@@ -15,7 +15,7 @@ RUN go get -u github.com/gobuffalo/packr/...
 
 RUN /go/bin/packr install github.com/korylprince/url-shortener-server
 
-FROM alpine:3.7
+FROM alpine:3.8
 
 RUN apk add --no-cache ca-certificates
 
