@@ -35,7 +35,7 @@ func setAction(action string, next http.Handler) http.Handler {
 	})
 }
 
-func logRequest(w io.Writer, next http.Handler) http.Handler {
+func logRequest(output io.Writer, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		l := new(logData)
 
@@ -47,6 +47,9 @@ func logRequest(w io.Writer, next http.Handler) http.Handler {
 		if err != nil {
 			log.Println("Unable to marshal JSON:", err)
 		}
-		fmt.Println(string(j))
+		_, err = fmt.Fprintln(output, string(j))
+		if err != nil {
+			log.Println("Unable to output log:", err)
+		}
 	})
 }
