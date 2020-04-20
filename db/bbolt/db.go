@@ -217,8 +217,13 @@ func (d *DB) Put(url *db.URL, user string) (id string, err error) {
 				break
 			}
 		}
-	} else if ub.Bucket([]byte(id)) != nil {
-		return "", fmt.Errorf("URL %s already exists", id)
+	} else if b := ub.Bucket([]byte(id)); b != nil {
+		if b.Get(deletedKey) == nil {
+			return "", fmt.Errorf("URL %s already exists", id)
+		}
+		if err := ub.DeleteBucket([]byte(id)); err != nil {
+			return "", fmt.Errorf("Unable to remove deleted URL %s: %v", id, err)
+		}
 	}
 
 	b, err := ub.CreateBucketIfNotExists([]byte(id))
