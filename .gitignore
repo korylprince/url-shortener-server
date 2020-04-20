@@ -3,3 +3,4 @@ env
 test.py
 url-shortener-server
 build
+tags

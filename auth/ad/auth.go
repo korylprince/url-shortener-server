@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"gopkg.in/korylprince/go-ad-auth.v1"
+	auth "gopkg.in/korylprince/go-ad-auth.v1"
 )
 
 //Auth represents an Active Directory authentication mechanism

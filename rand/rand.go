@@ -10,7 +10,7 @@ import (
 )
 
 //Characters is the character-space for random strings
-var Characters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+const Characters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 
 func init() {
 	rand.Seed(time.Now().Unix())
