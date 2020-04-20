@@ -1,4 +1,4 @@
-FROM golang:1.11-alpine as builder
+FROM golang:1.14-alpine as builder
 
 ARG VERSION
 
@@ -15,7 +15,7 @@ RUN go get -u github.com/gobuffalo/packr/...
 
 RUN /go/bin/packr install github.com/korylprince/url-shortener-server
 
-FROM alpine:3.8
+FROM alpine:3.11
 
 RUN apk add --no-cache ca-certificates
 
