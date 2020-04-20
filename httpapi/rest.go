@@ -10,17 +10,23 @@ import (
 	"strings"
 
 	"github.com/gorilla/mux"
-	"github.com/korylprince/url-shortener-server/db"
+	"github.com/korylprince/httputil/auth/ad"
+	"github.com/korylprince/httputil/jsonapi"
+	"github.com/korylprince/url-shortener-server/v2/db"
 )
 
-func (s *Server) hasRights(r *http.Request, user, id string) (bool, error) {
-	if admin := (r.Context().Value(contextKeyAdmin)).(bool); admin {
-		return true, nil
+func (s *Server) hasRights(r *http.Request, username, id string) (bool, error) {
+	session := jsonapi.GetSession(r)
+	user := session.(*ad.User)
+	for _, g := range user.Groups {
+		if g == s.adminGroup {
+			return true, nil
+		}
 	}
 
-	urls, err := s.db.URLs(user)
+	urls, err := s.db.URLs(username)
 	if err != nil {
-		return false, fmt.Errorf("Unable to get URLs for user %s: %v", user, err)
+		return false, fmt.Errorf("Unable to get URLs for user %s: %v", username, err)
 	}
 
 	owned := false
@@ -33,236 +39,213 @@ func (s *Server) hasRights(r *http.Request, user, id string) (bool, error) {
 	return owned, nil
 }
 
-func (s *Server) getHandler() http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		id := mux.Vars(r)["id"]
-		user := (r.Context().Value(contextKeyUser)).(string)
+func (s *Server) getHandler(r *http.Request) (int, interface{}) {
+	id := mux.Vars(r)["id"]
 
-		//check user has rights to url
-		ok, err := s.hasRights(r, user, id)
-		if err != nil {
-			jsonResponse(http.StatusInternalServerError, fmt.Errorf("Unable to check if user %s is has rights for URL %s: %v", user, id, err)).ServeHTTP(w, r)
-			return
-		}
+	session := jsonapi.GetSession(r)
+	user := session.Username()
 
-		if !ok {
-			jsonResponse(http.StatusForbidden, fmt.Errorf("User %s does not have permission to read URL %s", user, id)).ServeHTTP(w, r)
-			return
-		}
+	//check user has rights to url
+	ok, err := s.hasRights(r, user, id)
+	if err != nil {
+		return http.StatusInternalServerError, fmt.Errorf("Unable to check if user %s is has rights for URL %s: %v", user, id, err)
+	}
 
-		//read url
-		url, err := s.db.Get(id)
-		if err != nil {
-			jsonResponse(http.StatusInternalServerError, fmt.Errorf("Unable to get URL %s: %v", id, err)).ServeHTTP(w, r)
-			return
-		}
+	if !ok {
+		return http.StatusForbidden, fmt.Errorf("User %s does not have permission to read URL %s", user, id)
+	}
 
-		if url == nil {
-			jsonResponse(http.StatusNotFound, fmt.Errorf("URL %s does not exist", id)).ServeHTTP(w, r)
-			return
-		}
+	//read url
+	url, err := s.db.Get(id)
+	if err != nil {
+		return http.StatusInternalServerError, fmt.Errorf("Unable to get URL %s: %v", id, err)
+	}
 
-		jsonResponse(http.StatusOK, url).ServeHTTP(w, r)
-	})
+	if url == nil {
+		return http.StatusNotFound, fmt.Errorf("URL %s does not exist", id)
+	}
+
+	jsonapi.LogActionID(r, url.ID)
+
+	return http.StatusOK, url
 }
 
-func (s *Server) putHandler() http.Handler {
+func (s *Server) putHandler(r *http.Request) (int, interface{}) {
 	type response struct {
 		URLID string `json:"url_id"`
 	}
 
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		url := new(db.URL)
-		d := json.NewDecoder(r.Body)
+	url := new(db.URL)
+	d := json.NewDecoder(r.Body)
 
-		if err := d.Decode(url); err != nil {
-			jsonResponse(http.StatusBadRequest, fmt.Errorf("Unable to decode request body: %v", err)).ServeHTTP(w, r)
-			return
+	if err := d.Decode(url); err != nil {
+		return http.StatusBadRequest, fmt.Errorf("Unable to decode request body: %v", err)
+	}
+
+	if _, err := neturl.ParseRequestURI(url.URL); err != nil {
+		return http.StatusBadRequest, fmt.Errorf(`Unable to parse url "%s": %v`, url.URL, err)
+	}
+
+	if url.ID != "" && !regexp.MustCompile(allowedIDRegexp).MatchString(url.ID) {
+		return http.StatusBadRequest, fmt.Errorf(`URL ID %s not valid`, url.ID)
+	}
+
+	session := jsonapi.GetSession(r)
+	user := session.Username()
+
+	id, err := s.db.Put(url, user)
+	if err != nil {
+		if strings.Contains(err.Error(), "already exists") {
+			return http.StatusConflict, err
 		}
 
-		(r.Context().Value(contextKeyLogData)).(*logData).Data = url
+		return http.StatusInternalServerError, fmt.Errorf(`Unable to put URL "%s": %v`, url.URL, err)
+	}
 
-		if _, err := neturl.ParseRequestURI(url.URL); err != nil {
-			jsonResponse(http.StatusBadRequest, fmt.Errorf(`Unable to parse url "%s": %v`, url.URL, err)).ServeHTTP(w, r)
-			return
-		}
+	jsonapi.LogActionID(r, url.ID)
 
-		if url.ID != "" && !regexp.MustCompile(allowedIDRegexp).MatchString(url.ID) {
-			jsonResponse(http.StatusBadRequest, fmt.Errorf(`URL ID %s not valid`, url.ID)).ServeHTTP(w, r)
-			return
-		}
-
-		user := (r.Context().Value(contextKeyUser)).(string)
-
-		id, err := s.db.Put(url, user)
-		if err != nil {
-			if strings.Contains(err.Error(), "already exists") {
-				jsonResponse(http.StatusConflict, err).ServeHTTP(w, r)
-				return
-			}
-
-			jsonResponse(http.StatusInternalServerError, fmt.Errorf(`Unable to put URL "%s": %v`, url.URL, err)).ServeHTTP(w, r)
-			return
-		}
-
-		(r.Context().Value(contextKeyLogData)).(*logData).URLID = id
-
-		jsonResponse(http.StatusOK, &response{URLID: id}).ServeHTTP(w, r)
-	})
+	return http.StatusOK, &response{URLID: id}
 }
 
-func (s *Server) updateHandler() http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		id := mux.Vars(r)["id"]
-		user := (r.Context().Value(contextKeyUser)).(string)
+func (s *Server) updateHandler(r *http.Request) (int, interface{}) {
+	id := mux.Vars(r)["id"]
+	session := jsonapi.GetSession(r)
+	user := session.Username()
 
-		//check URL exists
-		url, err := s.db.Get(id)
-		if err != nil {
-			jsonResponse(http.StatusInternalServerError, fmt.Errorf("Unable to get URL %s: %v", id, err)).ServeHTTP(w, r)
-			return
+	//check URL exists
+	url, err := s.db.Get(id)
+	if err != nil {
+		return http.StatusInternalServerError, fmt.Errorf("Unable to get URL %s: %v", id, err)
+	}
+
+	if url == nil {
+		return http.StatusNotFound, fmt.Errorf("URL %s does not exist", id)
+	}
+
+	//read url from body
+	url = new(db.URL)
+	d := json.NewDecoder(r.Body)
+
+	if err = d.Decode(url); err != nil {
+		return http.StatusBadRequest, fmt.Errorf("Unable to decode request body: %v", err)
+	}
+
+	jsonapi.LogActionID(r, url.ID)
+
+	if _, err = neturl.ParseRequestURI(url.URL); err != nil {
+		return http.StatusBadRequest, fmt.Errorf(`Unable to parse url "%s": %v`, url.URL, err)
+	}
+
+	//check user has rights to url
+	ok, err := s.hasRights(r, user, id)
+	if err != nil {
+		return http.StatusInternalServerError, fmt.Errorf("Unable to check if user %s is has rights for URL %s: %v", user, id, err)
+	}
+
+	if !ok {
+		return http.StatusForbidden, fmt.Errorf("User %s does not have permission to update URL %s", user, id)
+	}
+
+	//update url
+	if err = s.db.Update(id, url); err != nil {
+		return http.StatusInternalServerError, fmt.Errorf("Unable to update URL %s: %v", id, err)
+	}
+
+	//re-read url
+	url, err = s.db.Get(id)
+	if err != nil || url == nil {
+		if err == nil {
+			err = errors.New("URL unexpectedly nil")
 		}
+		return http.StatusInternalServerError, fmt.Errorf("Unable to get URL %s: %v", id, err)
+	}
 
-		if url == nil {
-			jsonResponse(http.StatusNotFound, fmt.Errorf("URL %s does not exist", id)).ServeHTTP(w, r)
-			return
-		}
-
-		//read url from body
-		url = new(db.URL)
-		d := json.NewDecoder(r.Body)
-
-		if err = d.Decode(url); err != nil {
-			jsonResponse(http.StatusBadRequest, fmt.Errorf("Unable to decode request body: %v", err)).ServeHTTP(w, r)
-			return
-		}
-
-		(r.Context().Value(contextKeyLogData)).(*logData).Data = url
-
-		if _, err = neturl.ParseRequestURI(url.URL); err != nil {
-			jsonResponse(http.StatusBadRequest, fmt.Errorf(`Unable to parse url "%s": %v`, url.URL, err)).ServeHTTP(w, r)
-			return
-		}
-
-		//check user has rights to url
-		ok, err := s.hasRights(r, user, id)
-		if err != nil {
-			jsonResponse(http.StatusInternalServerError, fmt.Errorf("Unable to check if user %s is has rights for URL %s: %v", user, id, err)).ServeHTTP(w, r)
-			return
-		}
-
-		if !ok {
-			jsonResponse(http.StatusForbidden, fmt.Errorf("User %s does not have permission to update URL %s", user, id)).ServeHTTP(w, r)
-			return
-		}
-
-		//update url
-		if err = s.db.Update(id, url); err != nil {
-			jsonResponse(http.StatusInternalServerError, fmt.Errorf("Unable to update URL %s: %v", id, err)).ServeHTTP(w, r)
-			return
-		}
-
-		//re-read url
-		url, err = s.db.Get(id)
-		if err != nil || url == nil {
-			if err == nil {
-				err = errors.New("URL unexpectedly nil")
-			}
-			jsonResponse(http.StatusInternalServerError, fmt.Errorf("Unable to get URL %s: %v", id, err)).ServeHTTP(w, r)
-			return
-		}
-
-		jsonResponse(http.StatusOK, url).ServeHTTP(w, r)
-	})
+	return http.StatusOK, url
 }
 
-func (s *Server) deleteHandler() http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		id := mux.Vars(r)["id"]
-		user := (r.Context().Value(contextKeyUser)).(string)
+func (s *Server) deleteHandler(r *http.Request) (int, interface{}) {
+	id := mux.Vars(r)["id"]
+	session := jsonapi.GetSession(r)
+	user := session.Username()
 
-		//check URL exists
-		url, err := s.db.Get(id)
-		if err != nil {
-			jsonResponse(http.StatusInternalServerError, fmt.Errorf("Unable to get URL %s: %v", id, err)).ServeHTTP(w, r)
-			return
-		}
+	//check URL exists
+	url, err := s.db.Get(id)
+	if err != nil {
+		return http.StatusInternalServerError, fmt.Errorf("Unable to get URL %s: %v", id, err)
+	}
 
-		if url == nil {
-			jsonResponse(http.StatusNotFound, fmt.Errorf("URL %s does not exist", id)).ServeHTTP(w, r)
-			return
-		}
+	if url == nil {
+		return http.StatusNotFound, fmt.Errorf("URL %s does not exist", id)
+	}
 
-		//check user has rights to url
-		ok, err := s.hasRights(r, user, id)
-		if err != nil {
-			jsonResponse(http.StatusInternalServerError, fmt.Errorf("Unable to check if user %s is has rights for URL %s: %v", user, id, err)).ServeHTTP(w, r)
-			return
-		}
+	//check user has rights to url
+	ok, err := s.hasRights(r, user, id)
+	if err != nil {
+		return http.StatusInternalServerError, fmt.Errorf("Unable to check if user %s is has rights for URL %s: %v", user, id, err)
+	}
 
-		if !ok {
-			jsonResponse(http.StatusForbidden, fmt.Errorf("User %s does not have permission to delete URL %s", user, id)).ServeHTTP(w, r)
-			return
-		}
+	if !ok {
+		return http.StatusForbidden, fmt.Errorf("User %s does not have permission to delete URL %s", user, id)
+	}
 
-		//delete url
-		if err := s.db.Delete(id); err != nil {
-			jsonResponse(http.StatusInternalServerError, fmt.Errorf("Unable to delete URL %s: %v", id, err)).ServeHTTP(w, r)
-			return
-		}
+	jsonapi.LogActionID(r, url.ID)
 
-		jsonResponse(http.StatusOK, nil).ServeHTTP(w, r)
-	})
+	//delete url
+	if err := s.db.Delete(id); err != nil {
+		return http.StatusInternalServerError, fmt.Errorf("Unable to delete URL %s: %v", id, err)
+	}
+
+	return http.StatusOK, nil
 }
 
-func (s *Server) titleHandler() http.Handler {
+func (s *Server) titleHandler(r *http.Request) (int, interface{}) {
 	type response struct {
 		AppTitle string `json:"app_title"`
 	}
 
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		(r.Context().Value(contextKeyLogData)).(*logData).Data = s.AppTitle
-		jsonResponse(http.StatusOK, &response{AppTitle: s.AppTitle}).ServeHTTP(w, r)
-	})
+	jsonapi.LogActionID(r, s.AppTitle)
+	return http.StatusOK, &response{AppTitle: s.AppTitle}
 }
 
-func (s *Server) viewHandler() http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		id := mux.Vars(r)["id"]
-
-		url, err := s.db.View(id)
-		if err != nil {
-			jsonResponse(http.StatusInternalServerError, fmt.Errorf("Unable to get URL %s: %v", id, err)).ServeHTTP(w, r)
-			return
-		}
-
-		if url == "" {
-			http.Redirect(w, r, "/404.html", http.StatusTemporaryRedirect)
-			return
-		}
-
-		http.Redirect(w, r, url, http.StatusTemporaryRedirect)
-	})
-}
-
-func (s *Server) urlsHandler() http.Handler {
+func (s *Server) urlsHandler(r *http.Request) (int, interface{}) {
 	type response struct {
 		URLs []*db.URL `json:"urls"`
 	}
 
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		user := (r.Context().Value(contextKeyUser)).(string)
-
-		if admin := (r.Context().Value(contextKeyAdmin)).(bool); admin && r.FormValue("all") == "true" {
-			user = ""
+	admin := false
+	session := jsonapi.GetSession(r)
+	username := session.Username()
+	user := session.(*ad.User)
+	for _, g := range user.Groups {
+		if g == s.adminGroup {
+			admin = true
+			break
 		}
+	}
 
-		urls, err := s.db.URLs(user)
-		if err != nil {
-			jsonResponse(http.StatusInternalServerError, fmt.Errorf("Unable to get URLs for user %s: %v", user, err)).ServeHTTP(w, r)
-			return
-		}
+	if admin && r.FormValue("all") == "true" {
+		username = ""
+	}
 
-		jsonResponse(http.StatusOK, &response{URLs: urls}).ServeHTTP(w, r)
-	})
+	urls, err := s.db.URLs(username)
+	if err != nil {
+		return http.StatusInternalServerError, fmt.Errorf("Unable to get URLs for user %s: %v", username, err)
+	}
+
+	return http.StatusOK, &response{URLs: urls}
+}
+
+func (s *Server) viewHandler(r *http.Request) (int, interface{}) {
+	id := mux.Vars(r)["id"]
+
+	url, err := s.db.View(id)
+	if err != nil {
+		return http.StatusInternalServerError, fmt.Errorf("Unable to get URL %s: %v", id, err)
+	}
+
+	if url == "" {
+		return http.StatusNotFound, fmt.Errorf("URL %s doesn't exist", id)
+	}
+
+	return http.StatusOK, url
 }

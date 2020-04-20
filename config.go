@@ -4,8 +4,7 @@ import (
 	"log"
 	"strings"
 
-	"github.com/kelseyhightower/envconfig"
-	auth "gopkg.in/korylprince/go-ad-auth.v1"
+	auth "github.com/korylprince/go-ad-auth/v3"
 )
 
 //Config represents options given in the environment
@@ -24,32 +23,25 @@ type Config struct {
 	LDAPGroup      string
 	LDAPAdminGroup string
 	LDAPSecurity   string `default:"none" required:"true"`
-	ldapSecurity   auth.SecurityType
 
 	TLSCert string
 	TLSKey  string
 
 	ListenAddr string `default:":8080" required:"true"` //addr format used for net.Dial; required
 	Prefix     string //url prefix to mount api to without trailing slash
-	Debug      bool   `default:"false"` //return debugging information to client
 }
 
-var config = &Config{}
-
-func init() {
-	err := envconfig.Process("SHORTENER", config)
-	if err != nil {
-		log.Fatalln("Error reading configuration from environment:", err)
-	}
-
-	switch strings.ToLower(config.LDAPSecurity) {
+//SecurityType returns the auth.SecurityType for the config
+func (c *Config) SecurityType() auth.SecurityType {
+	switch strings.ToLower(c.LDAPSecurity) {
 	case "", "none":
-		config.ldapSecurity = auth.SecurityNone
+		return auth.SecurityNone
 	case "tls":
-		config.ldapSecurity = auth.SecurityTLS
+		return auth.SecurityTLS
 	case "starttls":
-		config.ldapSecurity = auth.SecurityStartTLS
+		return auth.SecurityStartTLS
 	default:
-		log.Fatalln("Invalid SHORTENER_LDAPSECURITY:", config.LDAPSecurity)
+		log.Fatalln("Invalid SHORTENER_LDAPSECURITY:", c.LDAPSecurity)
 	}
+	panic("unreachable")
 }

@@ -4,17 +4,12 @@ import (
 	"log"
 	"math/big"
 	"math/rand"
-	"time"
 
 	crand "crypto/rand"
 )
 
 //Characters is the character-space for random strings
 const Characters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-
-func init() {
-	rand.Seed(time.Now().Unix())
-}
 
 func randInt(max int) int {
 	i, err := crand.Int(crand.Reader, big.NewInt(int64(max)))

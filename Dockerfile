@@ -11,7 +11,7 @@ RUN cd /go/src/github.com/korylprince/url-shortener-server/client && \
     npm install && \
     npm run build-prod
 
-RUN go get -u github.com/gobuffalo/packr/...
+RUN go get -u github.com/gobuffalo/packr/packr
 
 RUN /go/bin/packr install github.com/korylprince/url-shortener-server
 

@@ -2,49 +2,54 @@ package main
 
 import (
 	"log"
+	"math/rand"
 	"net/http"
 	"os"
 	"time"
 
 	"github.com/gobuffalo/packr"
-	"github.com/korylprince/url-shortener-server/auth/ad"
-	"github.com/korylprince/url-shortener-server/db/bbolt"
-	"github.com/korylprince/url-shortener-server/httpapi"
-	"github.com/korylprince/url-shortener-server/session/memory"
-	adauth "gopkg.in/korylprince/go-ad-auth.v1"
+	"github.com/kelseyhightower/envconfig"
+	auth "github.com/korylprince/go-ad-auth/v3"
+	"github.com/korylprince/httputil/auth/ad"
+	"github.com/korylprince/httputil/session/memory"
+	"github.com/korylprince/url-shortener-server/v2/db/bbolt"
+	"github.com/korylprince/url-shortener-server/v2/httpapi"
 )
 
 func main() {
-	httpapi.Debug = config.Debug
+	config := new(Config)
+	err := envconfig.Process("SHORTENER", config)
+	if err != nil {
+		log.Fatalln("Error reading configuration from environment:", err)
+	}
+
+	rand.Seed(time.Now().Unix())
 
 	db, err := bbolt.New(config.DatabasePath, config.URLIDLength)
 	if err != nil {
 		log.Fatalln("Unable to create database:", err)
 	}
 
-	authConfig := &adauth.Config{
+	authConfig := &auth.Config{
 		Server:   config.LDAPServer,
 		Port:     config.LDAPPort,
 		BaseDN:   config.LDAPBaseDN,
-		Security: config.ldapSecurity,
-		Debug:    config.Debug,
+		Security: config.SecurityType(),
 	}
 
-	auth := ad.New(authConfig, config.LDAPGroup, config.LDAPAdminGroup)
+	auth := ad.New(authConfig, nil, []string{config.LDAPGroup, config.LDAPAdminGroup})
 
 	sessionStore := memory.New(time.Minute * time.Duration(config.SessionExpiration))
 
 	box := packr.NewBox("./client/dist")
 
-	s := httpapi.NewServer(config.AppTitle, db, auth, sessionStore, box)
-
-	r := httpapi.NewRouter(s, os.Stdout)
+	s := httpapi.NewServer(config.AppTitle, db, auth, config.LDAPAdminGroup, sessionStore, box, os.Stdout)
 
 	log.Println("Listening on:", config.ListenAddr)
 
 	if config.TLSCert != "" && config.TLSKey != "" {
-		log.Println(http.ListenAndServeTLS(config.ListenAddr, config.TLSCert, config.TLSKey, r))
+		log.Println(http.ListenAndServeTLS(config.ListenAddr, config.TLSCert, config.TLSKey, s.Router()))
 	} else {
-		log.Println(http.ListenAndServe(config.ListenAddr, r))
+		log.Println(http.ListenAndServe(config.ListenAddr, s.Router()))
 	}
 }

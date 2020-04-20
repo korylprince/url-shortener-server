@@ -6,9 +6,9 @@ import (
 	"log"
 	"time"
 
-	bolt "github.com/coreos/bbolt"
-	"github.com/korylprince/url-shortener-server/db"
-	"github.com/korylprince/url-shortener-server/rand"
+	"github.com/korylprince/url-shortener-server/v2/db"
+	"github.com/korylprince/url-shortener-server/v2/rand"
+	bolt "go.etcd.io/bbolt"
 )
 
 var urlsBucket = []byte("urls")

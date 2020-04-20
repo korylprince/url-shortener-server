@@ -2,11 +2,13 @@ package httpapi
 
 import (
 	"fmt"
-	"io"
 	"net/http"
 
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
+	"github.com/korylprince/httputil/auth/ad"
+	"github.com/korylprince/httputil/jsonapi"
+	"github.com/korylprince/httputil/session"
 )
 
 const allowedIDRegexp = "[a-zA-Z0-9_\\-.]+"
@@ -15,78 +17,36 @@ const allowedIDRegexp = "[a-zA-Z0-9_\\-.]+"
 const API = "1.1"
 const apiPath = "/api/" + API
 
-func notFound(w http.ResponseWriter, r *http.Request) {
-	jsonResponse(http.StatusNotFound, nil).ServeHTTP(w, r)
-}
-
-//NewRouter returns a new router for the given Server
-func NewRouter(s *Server, output io.Writer) http.Handler {
+//Router returns a new router
+func (s *Server) Router() http.Handler {
 	r := mux.NewRouter()
 
-	api := r.PathPrefix(apiPath).Subrouter()
+	var hook = func(sess session.Session) (bool, interface{}, error) {
+		attrs := map[string]bool{"admin": false}
+		user := sess.(*ad.User)
+		for _, g := range user.Groups {
+			if g == s.adminGroup {
+				attrs["admin"] = true
+				break
+			}
+		}
 
-	api.NotFoundHandler = http.HandlerFunc(notFound)
+		return true, attrs, nil
+	}
 
-	//Authenticate: POST /auth
-	api.Methods("POST").Path("/auth").Handler(
-		logRequest(output,
-			setAction("Authenticate",
-				jsonRequest(
-					s.authenticateHandler()))))
+	apirouter := jsonapi.New(s.output, s.auth, s.sessionStore, hook)
+	r.PathPrefix(apiPath).Handler(http.StripPrefix(apiPath, apirouter))
 
-	//Get: GET /urls/<id>
-	api.Methods("GET").Path(fmt.Sprintf("/urls/{id:%s}", allowedIDRegexp)).Handler(
-		logRequest(output,
-			setAction("Get",
-				s.requireAuthenticated(
-					s.getHandler()))))
+	apirouter.Handle("GET", fmt.Sprintf("/urls/{id:%s}", allowedIDRegexp), s.getHandler, true)
+	apirouter.Handle("POST", "/urls", s.putHandler, true)
+	apirouter.Handle("PUT", fmt.Sprintf("/urls/{id:%s}", allowedIDRegexp), s.updateHandler, true)
+	apirouter.Handle("DELETE", fmt.Sprintf("/urls/{id:%s}", allowedIDRegexp), s.deleteHandler, true)
+	apirouter.Handle("GET", "/title", s.titleHandler, false)
+	apirouter.Handle("GET", "/urls", s.urlsHandler, true)
 
-	//Put: POST /urls
-	api.Methods("POST").Path("/urls").Handler(
-		logRequest(output,
-			setAction("Put",
-				jsonRequest(
-					s.requireAuthenticated(
-						s.putHandler())))))
-
-	//Update: PUT /urls/<id>
-	api.Methods("PUT").Path(fmt.Sprintf("/urls/{id:%s}", allowedIDRegexp)).Handler(
-		logRequest(output,
-			setAction("Update",
-				jsonRequest(
-					s.requireAuthenticated(
-						s.updateHandler())))))
-
-	//Delete: DELETE /urls/<id>
-	api.Methods("DELETE").Path(fmt.Sprintf("/urls/{id:%s}", allowedIDRegexp)).Handler(
-		logRequest(output,
-			setAction("Delete",
-				s.requireAuthenticated(
-					s.deleteHandler()))))
-
-	//Title: GET /title
-	api.Methods("GET").Path("/title").Handler(
-		logRequest(output,
-			setAction("Title",
-				s.titleHandler())))
-
-	//URLs: GET /urls
-	api.Methods("GET").Path("/urls").Handler(
-		logRequest(output,
-			setAction("URLs",
-				s.requireAuthenticated(
-					s.urlsHandler()))))
-
-	//HTTP 404 Page
-	r.Path("/404.html").Handler(http.FileServer(s.box))
-
-	//View: GET /<code>
-	r.Methods("GET").Path(fmt.Sprintf("/{id:%s}", allowedIDRegexp)).Handler(
-		logRequest(output,
-			setAction("View",
-				s.viewHandler())))
-
+	r.Path("/error.html").Handler(http.FileServer(s.box))
+	r.Methods("GET").Path(fmt.Sprintf("/{id:%s}", allowedIDRegexp)).Handler(withRedirect(s.viewHandler))
 	r.PathPrefix("/").Handler(http.FileServer(s.box))
 
-	return handlers.CombinedLoggingHandler(output, r)
+	return handlers.CombinedLoggingHandler(s.output, r)
 }
