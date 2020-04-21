@@ -28,7 +28,6 @@ SHORTENER_TLSCERT="/path/to/cert.pem"
 SHORTENER_TLSKEY="/path/to/key.pem"
 SHORTENER_LISTENADDR=":8080"
 SHORTENER_PREFIX="/short" # Used to prefix all URLs
-SHORTENER_DEBUG="false" # Show extra debugging information in server logs and client API
 ```
 
 For more information see [config.go](https://github.com/korylprince/url-shortener-server/blob/master/config.go).
