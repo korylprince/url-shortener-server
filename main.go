@@ -1,13 +1,15 @@
 package main
 
 import (
+	"embed"
 	"log"
 	"math/rand"
 	"net/http"
 	"os"
 	"time"
 
-	"github.com/gobuffalo/packr"
+	_ "embed"
+
 	"github.com/kelseyhightower/envconfig"
 	auth "github.com/korylprince/go-ad-auth/v3"
 	"github.com/korylprince/httputil/auth/ad"
@@ -15,6 +17,9 @@ import (
 	"github.com/korylprince/url-shortener-server/v2/db/bbolt"
 	"github.com/korylprince/url-shortener-server/v2/httpapi"
 )
+
+//go:embed client
+var httpEmbed embed.FS
 
 func main() {
 	config := new(Config)
@@ -41,9 +46,7 @@ func main() {
 
 	sessionStore := memory.New(time.Minute * time.Duration(config.SessionExpiration))
 
-	box := packr.NewBox("./client/dist")
-
-	s := httpapi.NewServer(config.AppTitle, db, auth, config.LDAPAdminGroup, sessionStore, box, os.Stdout)
+	s := httpapi.NewServer(config.AppTitle, db, auth, config.LDAPAdminGroup, sessionStore, httpEmbed, os.Stdout)
 
 	log.Println("Listening on:", config.ListenAddr)
 

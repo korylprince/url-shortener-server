@@ -2,11 +2,18 @@
 
 This is the backend for a URL shortening service. The frontend can be found [here](https://github.com/korylprince/url-shortener-client).
 
-# Install
+# Building
+
+## Client
+
+The client is vendored in the repo so is only needed to be built if changes are made. See `build-client.sh` for a client build script. [nvm](https://github.com/nvm-sh/nvm) is required to build the client.
+
+## Server
+
 
 ```bash
-go get github.com/korylprince/url-shortener-server
-./build.sh
+$ cd /path/to/build/directory
+$ GOBIN="$(pwd)" go install "github.com/korylprince/url-shortener-server@<tagged version>"
 ```
 
 # Configuration

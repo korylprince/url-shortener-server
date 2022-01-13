@@ -1,0 +1,14 @@
+{
+  "version": "2.0.3",
+  "name": "url-shortener-client",
+  "description": "Authenticated URL Shortener",
+  "icons": {
+    "60": "/icons/firefox_app_60x60.png",
+    "128": "/icons/firefox_app_128x128.png",
+    "512": "/icons/firefox_app_512x512.png"
+  },
+  "developer": {
+    "name": "Kory Prince",
+    "url": null
+  }
+}

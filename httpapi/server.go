@@ -2,8 +2,8 @@ package httpapi
 
 import (
 	"io"
+	"io/fs"
 
-	"github.com/gobuffalo/packr"
 	"github.com/korylprince/httputil/auth"
 	"github.com/korylprince/httputil/session"
 	"github.com/korylprince/url-shortener-server/v2/db"
@@ -16,11 +16,11 @@ type Server struct {
 	auth         auth.Auth
 	adminGroup   string
 	sessionStore session.Store
-	box          packr.Box
+	files        fs.FS
 	output       io.Writer
 }
 
 //NewServer returns a new server with the given resources
-func NewServer(title string, db db.DB, auth auth.Auth, adminGroup string, sessionStore session.Store, box packr.Box, output io.Writer) *Server {
-	return &Server{AppTitle: title, db: db, auth: auth, adminGroup: adminGroup, sessionStore: sessionStore, box: box, output: output}
+func NewServer(title string, db db.DB, auth auth.Auth, adminGroup string, sessionStore session.Store, files fs.FS, output io.Writer) *Server {
+	return &Server{AppTitle: title, db: db, auth: auth, adminGroup: adminGroup, sessionStore: sessionStore, files: files, output: output}
 }

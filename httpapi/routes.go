@@ -44,9 +44,9 @@ func (s *Server) Router() http.Handler {
 	apirouter.Handle("GET", "/title", s.titleHandler, false)
 	apirouter.Handle("GET", "/urls", s.urlsHandler, true)
 
-	r.Path("/error.html").Handler(http.FileServer(s.box))
+	r.Path("/error.html").Handler(http.FileServer(http.FS(s.files)))
 	r.Methods("GET").Path(fmt.Sprintf("/{id:%s}", allowedIDRegexp)).Handler(withRedirect(s.viewHandler))
-	r.PathPrefix("/").Handler(http.FileServer(s.box))
+	r.PathPrefix("/").Handler(http.FileServer(http.FS(s.files)))
 
 	return handlers.CombinedLoggingHandler(s.output, r)
 }
