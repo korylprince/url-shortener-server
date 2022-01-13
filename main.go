@@ -2,6 +2,7 @@ package main
 
 import (
 	"embed"
+	"io/fs"
 	"log"
 	"math/rand"
 	"net/http"
@@ -46,7 +47,8 @@ func main() {
 
 	sessionStore := memory.New(time.Minute * time.Duration(config.SessionExpiration))
 
-	s := httpapi.NewServer(config.AppTitle, db, auth, config.LDAPAdminGroup, sessionStore, httpEmbed, os.Stdout)
+	client, _ := fs.Sub(httpEmbed, "client")
+	s := httpapi.NewServer(config.AppTitle, db, auth, config.LDAPAdminGroup, sessionStore, client, os.Stdout)
 
 	log.Println("Listening on:", config.ListenAddr)
 
