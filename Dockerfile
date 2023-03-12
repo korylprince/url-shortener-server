@@ -1,13 +1,11 @@
-FROM golang:1-alpine as builder
+FROM alpine:latest
 
-ARG VERSION
-
-RUN go install "github.com/korylprince/url-shortener-server/v2@$VERSION"
-
-FROM alpine:3.15
+ARG GO_PROJECT_NAME
+ENV GO_PROJECT_NAME=${GO_PROJECT_NAME}
 
 RUN apk add --no-cache ca-certificates
 
-COPY --from=builder /go/bin/url-shortener-server /shortener
+COPY docker-entrypoint.sh /
+COPY ${GO_PROJECT_NAME} /
 
-CMD ["/shortener"]
+ENTRYPOINT /docker-entrypoint.sh
