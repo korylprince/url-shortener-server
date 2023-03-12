@@ -8,4 +8,4 @@ RUN apk add --no-cache ca-certificates
 COPY docker-entrypoint.sh /
 COPY ${GO_PROJECT_NAME} /
 
-ENTRYPOINT /docker-entrypoint.sh
+CMD ["/docker-entrypoint.sh"]
