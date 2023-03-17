@@ -41,7 +41,7 @@ For more information see [config.go](https://github.com/korylprince/url-shortene
 
 # Docker
 
-You can use the pre-built Docker container, [korylprince/url-shortener-server](https://hub.docker.com/r/korylprince/url-shortener-server/).
+You can use the pre-built Docker container, [ghcr.io/korylprince/url-shortener-server](https://github.com/korylprince/url-shortener-server/pkgs/container/url-shortener-server).
 
 ### Examples
 
@@ -58,7 +58,7 @@ docker run -d --name="url-shortener" \
     -e SHORTENER_LDAPSECURITY="none" \
     -e SHORTENER_LISTENADDR=":80" \
     --restart="always" \
-    korylprince/url-shortener-server:latest
+    ghcr.io/korylprince/url-shortener-server:latest
 ```
 
 #### Use Custom App Title + LDAP StartTLS + HTTP TLS + LDAP Groups
@@ -79,5 +79,5 @@ docker run -d --name="url-shortener" \
     -e SHORTENER_TLSCERT="/data/chained_cert.pem" \
     -e SHORTENER_TLSKEY="/data/key.pem" \
     --restart="always" \
-    korylprince/url-shortener-server:latest
+    ghcr.io/korylprince/url-shortener-server:latest
 ```
